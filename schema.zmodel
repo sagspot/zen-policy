@@ -1,0 +1,63 @@
+generator client {
+    provider = "prisma-client-js"
+}
+
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+}
+
+abstract model baseEntity {
+    id Int @id @default(autoincrement())
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
+    isDeleted Boolean @default(false) @omit
+    deletedAt DateTime? @omit
+
+    @@allow('create', true)
+    // @@allow('read,update', isDeleted == false || auth().role == 'superadmin' || auth().role == 'admin')
+}
+
+enum Role {
+    superadmin
+    admin
+    staff
+    provider
+    customer
+}
+
+/**
+ * User model
+ */
+model User extends baseEntity {
+    name String
+    email String? @unique
+    role Role @default(customer)
+    posts Post[]
+
+    @@allow('create', true)
+    @@allow('read', auth().id == id || auth().role != 'customer')
+    @@allow('update', auth().id == id || auth().role == 'superadmin' || auth().role == 'admin')
+    @@allow('delete', auth().id == id || auth().role == 'superadmin' || auth().role == 'admin')
+
+    @@deny('read', isDeleted == true && (auth().role != 'admin' || auth().role != 'superadmin'))
+
+    @@deny('update', (role == 'superadmin' && auth().id != id) || (role == 'admin' && auth().id != id && auth().role != 'superadmin') || (role != future().role && auth().role != 'admin' && auth().role != 'superadmin') || (role != future().role && future().role == 'superadmin') || (role != future().role && future().role == 'admin' && auth().role != 'superadmin'))
+}
+
+/**
+ * Post model
+ */
+model Post extends baseEntity {
+    title String @length(1, 256)
+    content String
+    published Boolean @default(false)
+    author User @relation(fields: [authorId], references: [id])
+    authorId Int
+
+    // allow read for all signin users
+    @@allow('read', auth() != null && published)
+
+    // full access by author
+    @@allow('all', author == auth())
+}
