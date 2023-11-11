@@ -3,6 +3,18 @@
 ## Installation
 
 - Clone the project
+
+  ```bash
+  # using https
+  git clone https://github.com/sagspot/zen-policy.git
+
+  # or using ssh
+  git clone git@github.com:sagspot/zen-policy.git
+
+  # or using github cli
+  gh repo clone sagspot/zen-policy
+  ```
+
 - Install packages
 
   ```bash
